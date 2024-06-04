@@ -1,0 +1,44 @@
+{
+    "numerical_params": {
+        "distribution_params": {
+            "mu": {"type": "number_input", "step": 0.1, "value": 0.0},
+            "sigma": {"type": "number_input", "step": 0.1, "value": 3.0},
+            "rho": {"type": "number_input", "step": 0.1, "value": 0.9}
+        },
+        "generate_params": {
+            "n": {"type": "number_input", "step": 1, "value": 1},
+            "num_simulations": {"type": "number_input", "step": 10000, "value": 100000},
+            "seed": {"type": "number_input", "step": 1, "value": 0}
+        }
+    },
+    "text_params": {
+        "pretty_text": {
+            "distribution_params": {
+                "title": "Normal distribtion parameters",
+                "mu": "$\\mu$",
+                "sigma": "$\\sigma$",
+                "rho": "$\\rho$"
+            },
+            "generate_params": {
+                "title": "Generate Parameters",
+                "n": "$n$",
+                "num_simulations": "Number of simulations",
+                "seed": "seed"
+            }
+        },
+        "help_text": {
+            "distribution_params": {
+                "title": "Normal distribtion parameters",
+                "mu": "Mean of normal distribution",
+                "sigma": "Standard deviation of the normal distribution",
+                "rho": "The correlation coefficient between two normal distributions"
+            },
+            "generate_params": {
+                "title": "Generate Parameters",
+                "n": "The number of dimensions to generate.",
+                "num_simulations": "The total number of simulations to run.",
+                "seed": "The seed for random number generation to ensure reproducibility."
+            }
+        }
+    }
+}

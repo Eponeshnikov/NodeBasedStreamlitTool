@@ -1,0 +1,18 @@
+{
+    "block_name": "Random Number Generator",
+    "cache": false,
+    "category": "Examples",
+    "input_names": {
+      "low": "Minimum Value",
+      "high": "Maximum Value"
+    },
+    "output_names": ["Random Number"],
+    "options": {
+      "seed": {
+        "type": "integer",
+        "value": 42,
+        "name": "Seed Value"
+      }
+    },
+    "docstring": "This block generates a random number between the specified minimum and maximum values. This block uses random_number.json to configure blocs's settings"
+  }

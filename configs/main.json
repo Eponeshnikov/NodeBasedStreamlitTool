@@ -1,0 +1,18 @@
+{
+    "root_dir_sidepanel": "configs/sidepanel/",
+    "show_example_blocks": true,
+    "root_dir_dataframe_hash": "configs/dataframe/",
+    "root_dir_dataframe_custom": "configs/dataframe/custom/",
+    "root_dir_py_scripts": "scripts/",
+    "python_editor": {
+        "theme": "chaos",
+        "keybinding": "vscode",
+        "font_size": 14,
+        "tab_size": 4,
+        "wrap": true,
+        "show_gutter": true,
+        "show_print_margin": true,
+        "auto_update": false,
+        "readonly": false
+    }
+}
