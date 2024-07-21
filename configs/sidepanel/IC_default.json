@@ -1,0 +1,157 @@
+{
+    "numerical_params": {
+        "delays_params": {
+            "m": {
+                "type": "number_input",
+                "step": 1,
+                "value": 200
+            },
+            "tau_1": {
+                "type": "number_input",
+                "step": 1,
+                "value": 10
+            },
+            "delays_noise": {
+                "type": "checkbox",
+                "value": false
+            },
+            "noise_mu": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 0.0
+            },
+            "noise_sigma": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 0.0
+            }
+        },
+        "amplitudes_params": {
+            "mu": {
+                "type": "number_input",
+                "step": 1,
+                "value": 0
+            },
+            "sigma": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 3.0
+            },
+            "global_fading": {
+                "type": "checkbox",
+                "value": true
+            },
+            "z": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 2.0
+            },
+            "fc": {
+                "type": "number_input",
+                "step": 100,
+                "value": 1200
+            },
+            "amplitudes_noise": {
+                "type": "checkbox",
+                "value": false
+            },
+            "noise_mu": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 0.0
+            },
+            "noise_sigma": {
+                "type": "number_input",
+                "step": 0.1,
+                "value": 0.0
+            }
+        },
+        "generate_params": {
+            "delays": {
+                "type": "checkbox",
+                "value": true
+            },
+            "amplitudes": {
+                "type": "checkbox",
+                "value": true
+            },
+            "n": {
+                "type": "number_input",
+                "step": 1,
+                "value": 2
+            },
+            "num_simulations": {
+                "type": "number_input",
+                "step": 10000,
+                "value": 100000
+            },
+            "seed": {
+                "type": "number_input",
+                "step": 1,
+                "value": 0
+            }
+        }
+    },
+    "text_params": {
+        "pretty_text": {
+            "delays_params": {
+                "title": "Delays Parameters",
+                "m": "$m$",
+                "tau_1": "${\\tau}_1$",
+                "delays_noise": "Delays noise",
+                "noise_mu": "Noise $\\mu$",
+                "noise_sigma": "Noise $\\sigma$"
+            },
+            "amplitudes_params": {
+                "title": "Amplitudes Parameters",
+                "mu": "$\\mu$",
+                "sigma": "$\\sigma$",
+                "global_fading": "Global fading",
+                "z": "$z$",
+                "fc": "Frequency of signal",
+                "amplitudes_noise": "Amplitudes noise",
+                "noise_mu": "Noise $\\mu$",
+                "noise_sigma": "Noise $\\sigma$"
+            },
+            "generate_params": {
+                "return_separate_parts": "Return separate parts",
+                "title": "Generate Parameters",
+                "delays": "Delays",
+                "amplitudes": "Amplitudes",
+                "n": "$n$",
+                "num_simulations": "Number of simulations",
+                "seed": "seed"
+            }
+        },
+        "help_text": {
+            "delays_params": {
+                "title": "Delays Parameters",
+                "m": "The mean of exponentional distribution (ns)",
+                "tau_1": "The minimum time of delays (ns)",
+                "delays_noise": "Indicates whether noise should be added to the delays.",
+                "noise_mu": "Mean of the noise added to delays.",
+                "noise_sigma": "Standard deviation of the noise added to delays."
+            },
+            "amplitudes_params": {
+                "title": "Amplitudes Parameters",
+                "mu": "Mean of the lognormal distribution of amplitudes.",
+                "sigma": "Standard deviation of the lognormal distribution of amplitudes.",
+                "global_fading": "Indicates whether global fading should be applied to the amplitudes.",
+                "z": "The exponent for global fading.",
+                "fc": "The frequency of signal (MHz)",
+                "amplitudes_noise": "Indicates whether noise should be added to the amplitudes.",
+                "noise_mu": "Mean of the noise added to amplitudes.",
+                "noise_sigma": "Standard deviation of the noise added to amplitudes."
+            },
+            "generate_params": {
+                "return_separate_parts": "If True, return delays, delays noise, shadow fading, amplitudes noise and global fading results in separate, else return impulse characteristics (delays and final amplitudes)",
+                "title": "Generate Parameters",
+                "delays": "Indicates whether to generate delays.",
+                "amplitudes": "Indicates whether to generate amplitudes.",
+                "n": "The number of delays/amplitudes to generate.",
+                "num_simulations": "The total number of simulations to run.",
+                "seed": "The seed for random number generation to ensure reproducibility."
+            }
+        }
+    }
+}
