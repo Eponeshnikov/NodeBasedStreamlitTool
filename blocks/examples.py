@@ -1,7 +1,8 @@
-from gen_block import generate_block
+from gen_block import generate_block, function_modificators
 import random
 import time
 import matplotlib.pyplot as plt
+
 
 
 def compute_test_func(input1, input2):
@@ -11,7 +12,7 @@ def compute_test_func(input1, input2):
     return input1 + input2
 
 
-def compute_func(x, y, z):
+def compute_func_1(x, y, z=1):
     """
     This is a test function to demonstrate the usage of generate_block with differrent options configs.
     config_1 = {
@@ -55,7 +56,7 @@ def cache_func():
 
 options_config1 = {
     "block_name": "Compute Sum (config 1)",
-    "input_names": {"x": "First", "y": "Second", "z": "Third"},
+    "input_names": {"data_sources_1": "x", "data_sources_2": "y", "list_dict_params": "params"},
     "output_names": ["Sum"],
 }
 
@@ -72,13 +73,16 @@ options_config3 = {"block_name": "Cache Example"}
 
 block1 = generate_block(compute_test_func, category_name="Examples", cache=False)
 block2 = generate_block(
-    compute_func,
+    compute_func_1,
     options_config_param=options_config1,
+    func_modificator=function_modificators.DataCombinationDecorator,
+    func_modificator_config_params={'data_params': [0,1]},
+    func_modificator_params_visible=['return_params'],
     category_name="Examples",
     cache=False,
 )
 block3 = generate_block(
-    compute_func,
+    compute_func_1,
     options_config_param=options_config2,
     category_name="Examples",
     cache=False,

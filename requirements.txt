@@ -1,0 +1,16 @@
+matplotlib
+plotly
+streamlit
+numpy
+pandas
+pygwalker
+clearml
+scipy
+ydata_profiling
+st_pages
+barfi
+scikit-learn
+joblib
+streamlit_ace
+mpld3
+pillow  

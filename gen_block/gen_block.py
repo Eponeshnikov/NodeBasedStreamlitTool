@@ -8,14 +8,19 @@ from typing import Dict, Any
 import numpy as np
 import streamlit as st
 from joblib import Memory
+import itertools
 
 
 def generate_block(
     compute_func,
     options_config_param: Dict[str, Any] = None,
+    func_modificator=None,
+    func_modificator_config_params: Dict[str, Any] = {},
+    func_modificator_params_visible: list = [],
     add_display_option: bool = True,
     category_name: str = "Uncategorized",
     cache: bool = True,
+    cache_visible: bool = True,
 ):
     """
     Generates a Block object configured with inputs, outputs, and options based on a compute function and additional parameters.
@@ -27,13 +32,24 @@ def generate_block(
     Parameters:
     - compute_func (Callable): The compute function that the Block will execute. This function's signature is analyzed to configure inputs and outputs.
     - options_config_param (Dict[str, Any], optional): A dictionary containing additional configuration for the Block, such as custom input names, output names, and options. Defaults to None.
+    - func_modificator (Callable, optional): A function that can be applied to the compute function to modify its behavior. Defaults to None.
+    - func_modificator_config_params (Dict[str, Any], optional): A dictionary containing configuration parameters for the function modifier. Defaults to an empty dictionary.
+    - func_modificator_params_visible (list, optional): A list of parameter names that should be visible in the function modifier's interface. Defaults to an empty list.
     - add_display_option (bool, optional): If True, adds a display option to the Block showing the compute function's docstring. Defaults to False.
     - category_name (str, optional): The category name under which the Block will be grouped. Defaults to "Uncategorized".
     - cache (bool, optional): Enables caching of the compute function's results if True. Defaults to False.
+    - cache_visible (bool, optional): If True, enables a cache visibility option in the Block's interface. Defaults to True.
 
     Returns:
     - Block: A configured Block object ready for use within a larger application or framework.
     """
+
+    if func_modificator is not None:
+        compute_function = func_modificator(**func_modificator_config_params)(
+            compute_func
+        )
+    else:
+        compute_function = compute_func
 
     def load_options_config(config_file):
         """
@@ -59,7 +75,7 @@ def generate_block(
         return {}
 
     # Get the function signature
-    signature = inspect.signature(compute_func)
+    signature = inspect.signature(compute_function)
 
     # Load options config
     try:
@@ -86,19 +102,36 @@ def generate_block(
 
     # Add input interfaces
     input_names_all = {}
-    for param_name, param in signature.parameters.items():
-        input_name = options_config.get("input_names", {}).get(param_name, param_name)
-        input_names_all[param_name] = input_name
 
-    optinons_names = options_config.get("options", {})
+    op_conf_in_n = options_config.get("input_names", {})
+    for param_name, param in signature.parameters.items():
+        if param.kind == param.VAR_POSITIONAL:
+            var_pos_params = [k for k, v in op_conf_in_n.items() if param_name in k]
+            if len(var_pos_params) > 0:
+                input_names_all[param_name] = []
+                for i, var_pos_param in enumerate(var_pos_params):
+                    input_names_all[param_name].append(
+                        op_conf_in_n.get(var_pos_param, var_pos_param)
+                    )
+            else:
+                input_names_all[param_name] = op_conf_in_n.get(param_name, param_name)
+        else:
+            input_name = op_conf_in_n.get(param_name, param_name)
+            input_names_all[param_name] = input_name
+
+    options_names = options_config.get("options", {})
     input_names_current = {
-        k: v for k, v in input_names_all.items() if k not in optinons_names
+        k: v for k, v in input_names_all.items() if k not in options_names
     }
     for input_name in input_names_current.values():
-        block.add_input(name=input_name)
+        if isinstance(input_name, str):
+            block.add_input(name=input_name)
+        elif isinstance(input_name, list):
+            for i, name in enumerate(input_name):
+                block.add_input(name=name)
 
     # Add output interfaces
-    num_outputs = find_return_value_count(compute_func)
+    num_outputs = find_return_value_count(compute_function)
     output_names_default = [f"output_{i+1}" for i in range(num_outputs)]
     output_names = options_config.get("output_names", output_names_default)
     if len(output_names) > len(output_names_default):
@@ -108,20 +141,39 @@ def generate_block(
 
     for output_name in output_names:
         block.add_output(name=output_name)
-
-    block.add_option(name="Cache Block", type="checkbox", value=cache_)
+    if cache_visible:
+        block.add_option(name="Cache Block", type="checkbox", value=cache_)
     if add_display_option:
         docstring = inspect.getdoc(compute_func)
         if docstring is None:
             docstring = ""
         docstring = options_config.get("docstring", docstring)
         if len(docstring) > 0:
-            block.add_option(name="display_line1", type="display", value="-" * 20)
+            block.add_option(
+                name="display_line_1",
+                type="display",
+                value="-" * 9 + " Documentation " + "-" * 9,
+            )
             block.add_option(name="display_option", type="display", value=docstring)
-            block.add_option(name="display_line2", type="display", value="-" * 20)
+            block.add_option(name="display_line_2", type="display", value="-" * 40)
 
     # Add options to the Block
-    add_options(block, compute_func, optinons_names)
+    add_options(block, compute_function, options_names)
+
+    if len(func_modificator_params_visible) > 0:
+        block.add_option(
+            name="display_line_3", type="display", value="== Modificator parameters =="
+        )
+        func_modificator_options_names = options_config.get(
+            "func_modificator_options",
+            {k: {"name": k} for k in func_modificator_params_visible},
+        )
+        add_options(
+            block,
+            func_modificator,
+            func_modificator_options_names,
+        )
+        block.add_option(name="display_line_4", type="display", value="=" * 22)
 
     # Define the compute function
     def compute_func_wrapper(self):
@@ -139,23 +191,63 @@ def generate_block(
         None. However, it updates the Block's state with the execution time and sets the output interface values.
         """
         # Get the value of the input interfaces
+        list_var_args = list(
+            itertools.chain(
+                *[
+                    param_name[1]
+                    for param_name in input_names_current.items()
+                    if isinstance(param_name[1], list)
+                ]
+            )
+        )
+
+        input_valuse_var_arg = [
+            self.get_interface(param_var_arg) for param_var_arg in list_var_args
+        ]
+
         input_values = {
             param_name[0]: self.get_interface(name=param_name[1])
             for param_name in input_names_current.items()
+            if isinstance(param_name[1], str)
         }
         option_values = {
             opt_name[0]: self.get_option(name=opt_name[1].get("name", opt_name[0]))
-            for opt_name in optinons_names.items()
+            for opt_name in options_names.items()
         }
-        cache_ = self.get_option(name="Cache Block")
+
+        if cache_visible:
+            cache_ = self.get_option(name="Cache Block")
+        else:
+            cache_ = options_config.get("cache", cache)
+
+        if len(func_modificator_params_visible) > 0 and func_modificator is not None:
+            func_modificator_config_params_new = dict(func_modificator_config_params)
+            func_modificator_option_values = {
+                opt_name[0]: self.get_option(name=opt_name[1].get("name", opt_name[0]))
+                for opt_name in func_modificator_options_names.items()
+            }
+            func_modificator_config_params_new.update(func_modificator_option_values)
+            new_func_modificator_inst = func_modificator(
+                **func_modificator_config_params_new
+            )
+            compute_function = new_func_modificator_inst(compute_func)
+        elif len(func_modificator_params_visible) == 0 and func_modificator is not None:
+            compute_function = func_modificator(**func_modificator_config_params)(
+                compute_func
+            )
+        else:
+            compute_function = compute_func
+
         memory = Memory(".cache", verbose=0)
         with st.spinner(f"Running {block_name}"):
             start_time = time.time_ns()
             # Call the provided compute function with input values
-            compute_func_wrapper = (
-                memory.cache(compute_func) if cache_ else compute_func
+            compute_func_wrapper_ = (
+                memory.cache(compute_function) if cache_ else compute_function
             )
-            outputs = compute_func_wrapper(**input_values, **option_values)
+            outputs = compute_func_wrapper_(
+                *input_valuse_var_arg, **input_values, **option_values
+            )
             exec_time = time.time_ns() - start_time
         self.set_state("exec_time", exec_time)
 
@@ -185,10 +277,14 @@ def find_return_value_count(func):
     - int: The number of values the function returns. Returns 0 if the function does not return anything or returns None.
 
     """
+
+    import textwrap
+
     source_lines, _ = inspect.getsourcelines(
         func
     )  # Retrieve the source lines of the function.
     source_code = "".join(source_lines)  # Combine the lines into a single string.
+    source_code = textwrap.dedent(source_code)
     tree = ast.parse(
         source_code
     )  # Parse the source code into an abstract syntax tree (AST).
@@ -333,5 +429,6 @@ def infer_option_type(func, param_name):
         return "checkbox"
     else:
         return "input"
+
 
 __all__ = [generate_block]

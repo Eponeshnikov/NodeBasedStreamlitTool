@@ -6,7 +6,8 @@ from barfi import st_barfi, barfi_schemas
 from collections import ChainMap
 from blocks import blocks
 import inspect
-from typing import Any, Literal
+from typing import Any
+import pickle
 from st_pages import show_pages_from_config
 
 
@@ -440,6 +441,10 @@ else:
     # ─────────────────────────────────────
     # ──────── Select Configuration ──────
     # ─────────────────────────────────────
+    
+    if 'keys' not in configs:
+        st.session_state['keys'] = {}
+    
     # Allow user to select a configuration.
 
     # Create a list of configuration names (without .json extension) in st.session_state["configs"]
@@ -624,9 +629,30 @@ else:
     else:
         st.sidebar.warning("No configurations chosen")
 
-columns = st.columns(4)
+columns = st.columns([25, 75])
 with columns[0]:
     barfi_schema_name = st.selectbox("Select a saved schema to load:", barfi_schemas())
+    if 'barfi' not in st.session_state['keys']:
+        st.session_state['keys']['barfi'] = True
+    if st.button("Update Nodes", use_container_width=True):
+        st.session_state['keys']['barfi'] = not st.session_state['keys']['barfi']
+
+with columns[1]:
+    files = st.file_uploader("Add schemas from files", accept_multiple_files=True)
+    if len(files) > 0:
+        try:
+            with open('schemas.barfi', 'rb') as handle_read:
+                schemas = pickle.load(handle_read)
+        except FileNotFoundError:
+            print("File not found")
+            schemas = {}
+        for file in files:
+            new_schemas = pickle.load(file)
+            schemas.update(new_schemas)
+        with open('schemas.barfi', 'wb') as handle_write:
+            pickle.dump(schemas, handle_write, protocol=pickle.HIGHEST_PROTOCOL)
+            
+
 
 # ─────────────────────────────────────
 # ───── Block 7: Categorize Blocks ────
@@ -653,9 +679,15 @@ number_of_blocks = [len(category_blocks[i]) for i in category_blocks.keys()]
 if np.sum(number_of_blocks) == 0:
     st.warning("No blocks found")
 
+key_barfi = None if st.session_state['keys']['barfi'] else f"barfi_state_{st.session_state['keys']['barfi']}"
+
 barfi_res = st_barfi(
-    category_blocks, compute_engine=True, load_schema=barfi_schema_name
+    category_blocks, compute_engine=True, load_schema=barfi_schema_name, key=key_barfi
 )
+if st.session_state['keys']['barfi'] == False:
+    st.session_state['keys']['barfi'] = True
+    st.rerun()
+    
 with st.popover("Results", use_container_width=True):
     if len(barfi_res.keys()) > 0:
         tabs = st.tabs(barfi_res.keys())
