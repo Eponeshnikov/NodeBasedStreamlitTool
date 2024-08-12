@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import json
-import glob
+import os
 from barfi import st_barfi, barfi_schemas
 from collections import ChainMap
 from blocks import blocks
@@ -9,58 +9,12 @@ import inspect
 from typing import Any
 import pickle
 from st_pages import show_pages_from_config
+from utils import format_nanoseconds, get_configs, between
 
 
 # ─────────────────────────────────────
 # ───── Block 1: Helper Functions ────
 # ─────────────────────────────────────
-
-
-def format_nanoseconds(nanoseconds: int) -> str:
-    """
-    Convert a duration from nanoseconds to a more readable string format, breaking down
-    the duration into hours, minutes, seconds, milliseconds, microseconds, and nanoseconds.
-
-    Parameters
-    ----------
-    nanoseconds : int
-        The duration in nanoseconds to be formatted.
-
-    Returns
-    -------
-    str
-        A string representing the formatted duration, including only the non-zero units
-        from the highest non-zero unit down to nanoseconds. For example, "1 hr 15 min 42 s"
-        or "200 ms 1 μs". Returns "0 ns" if the input is 0.
-    """
-    # Define the units and their conversion factors relative to the next smaller unit.
-    units = {"ns": 0, "μs": 0, "ms": 0, "s": 0, "min": 0, "hr": 0}
-    conversions = [1000, 1000, 1000, 60, 60, 1]  # Conversion factors for each unit.
-    nanoseconds_ = nanoseconds  # Copy of the input to manipulate.
-
-    # Convert nanoseconds to higher units iteratively.
-    for key, conversion in zip(units.keys(), conversions):
-        if key != "hr":  # For all units except hours, calculate quotient and remainder.
-            quotient = nanoseconds_ // conversion
-            remainder = nanoseconds_ % conversion
-            units[key] = remainder  # Assign remainder to the unit.
-            nanoseconds_ = quotient  # Update nanoseconds for the next iteration.
-        else:
-            units[key] = nanoseconds_  # Assign remaining nanoseconds to hours.
-
-    # Reverse the units dictionary to start formatting from the highest unit down.
-    result = list(units.items())[::-1]
-    print_res = "0 ns"  # Default result if all units are zero.
-    # Construct the formatted string with non-zero units.
-    for i, r in enumerate(result):
-        if r[1] != 0:  # If the unit is non-zero, start constructing the result string.
-            print_res = " ".join(
-                [f"{x[1]} {x[0]}" for x in result[i : min(len(result), i + 3)]]
-            )
-            break  # Stop after finding the first non-zero unit.
-
-    return print_res
-
 
 def display_value(value: Any) -> None:
     """
@@ -82,7 +36,8 @@ def display_value(value: Any) -> None:
         Streamlit interface.
     """
     st.write("Value:", value)  # Display the actual value
-    st.write("Type of value:", str(type(value)))  # Display the type of the value
+    # Display the type of the value
+    st.write("Type of value:", str(type(value)))
 
 
 def display_block_results(block_result: dict, expanded: bool = False) -> None:
@@ -123,7 +78,8 @@ def display_block_results(block_result: dict, expanded: bool = False) -> None:
             st.code(state_info["traceback"])
     elif state_info["status"] == "Computed":
         exec_time = block_dict["_state"].get("exec_time", None)
-        exec_time = format_nanoseconds(exec_time) if exec_time is not None else None
+        exec_time = format_nanoseconds(
+            exec_time) if exec_time is not None else None
         st.success(f"Successfully computed in {exec_time}")
 
     with st.expander("**Inputs**", expanded=expanded):
@@ -241,7 +197,8 @@ def setup_params() -> dict:
                 # Extract the widget type
                 widget_type = value_.get("type", "text_input")
                 # Extract additional widget parameters
-                widget_params = {k: v for k, v in value_.items() if k != "type"}
+                widget_params = {k: v for k,
+                                 v in value_.items() if k != "type"}
 
                 # Get the widget function for the parameter type
                 widget_func = getattr(st, widget_type, st.text_input)
@@ -306,13 +263,15 @@ def setup_params() -> dict:
                             **widget_params_from,
                         )
                     with multi_columms[1]:
-                        to_w = widget_func(f"To:", key=to_key, **widget_params_to)
+                        to_w = widget_func(
+                            f"To:", key=to_key, **widget_params_to)
                     with multi_columms[2]:
                         step_w = widget_func(
                             f"Step:", key=step_key, **widget_params_step
                         )
 
-                    params_widgets[key] = {"from": from_w, "to": to_w, "step": step_w}
+                    params_widgets[key] = {
+                        "from": from_w, "to": to_w, "step": step_w}
                 elif (
                     widget_type == "checkbox"
                     and st.session_state["multi_params"][config_name]
@@ -431,41 +390,54 @@ with advanced_sidebar:
     # ─ Block 5: Check and Load Configs ──
     # ─────────────────────────────────────
     # Get all JSON files in the root_dir directory
-    configs = glob.glob("*.json", root_dir=root_dir_sidepanel)
+    configs, modules_names = get_configs(root_dir_sidepanel)
+
 
 
 if len(configs) == 0:
+    modules_warnings = ', '.join([f'"{i.strip("/")}"' for i in modules_names.values() if len(i) > 0])
     st.warning(f"No configurations found in {root_dir_sidepanel}")
+    st.warning(f"No configurations found in modules {modules_warnings}")
 else:
 
     # ─────────────────────────────────────
     # ──────── Select Configuration ──────
     # ─────────────────────────────────────
-    
-    if 'keys' not in configs:
-        st.session_state['keys'] = {}
-    
+
+    if "keys" not in st.session_state:
+        st.session_state["keys"] = {}
+
     # Allow user to select a configuration.
 
     # Create a list of configuration names (without .json extension) in st.session_state["configs"]
     if "configs_n" not in st.session_state:
-        st.session_state["configs_n"] = {i.split(".")[0]: 1 for i in configs}
+        st.session_state["configs_n"] = {
+            modules_names[i] + os.path.basename(i).split(".")[0]: 1 for i in configs
+        }
 
     default_config_multiselect = None
 
     if len(list(st.session_state["configs_n"].keys())) != len(configs):
         try:
-            default_config_multiselect = list(st.session_state["configs_in_run"])
+            default_config_multiselect = list(
+                st.session_state["configs_in_run"])
         except Exception as e:
             default_config_multiselect = None
 
         for i in configs:
-            if i.split(".")[0] not in st.session_state["configs_n"]:
-                st.session_state["configs_n"][i.split(".")[0]] = 1
+            if (
+                modules_names[i] + os.path.basename(i).split(".")[0]
+                not in st.session_state["configs_n"]
+            ):
+                st.session_state["configs_n"][
+                    modules_names[i] + os.path.basename(i).split(".")[0]
+                ] = 1
 
     with advanced_sidebar:
         add_child_config = st.selectbox(
-            "Add configuration", [i.split(".")[0] for i in configs]
+            "Add configuration",
+            [modules_names[i] +
+                os.path.basename(i).split(".")[0] for i in configs],
         )
         add_child_config_button = st.button("Add configuration")
 
@@ -474,8 +446,15 @@ else:
 
     configs_dict = dict()
     for config_ in configs:
-        for i in range(st.session_state["configs_n"][config_.split(".")[0]]):
-            configs_dict[f'{config_.split(".")[0]}-{i+1}'] = config_.split(".")[0]
+        for i in range(
+            st.session_state["configs_n"][
+                modules_names[config_] +
+                os.path.basename(config_).split(".")[0]
+            ]
+        ):
+            configs_dict[
+                f'{modules_names[config_] + os.path.basename(config_).split(".")[0]}-{i+1}'
+            ] = (modules_names[config_] + os.path.basename(config_).split(".")[0])
     st.session_state["configs"] = configs_dict
 
     # Display a selectbox in the sidebar to choose a configuration from st.session_state["configs"]
@@ -575,7 +554,7 @@ else:
                 # Input for specifying the file path where the configuration should be saved
                 save_path = st.text_input(
                     "Save Config Path",
-                    value=f"configs/generation/{config_name}.json",
+                    value=f"configs/sidepanel/{config_name}.json",
                     key=f"{config_name}.save_config.save_path",
                 )
                 slider_params_save = dict()
@@ -586,7 +565,8 @@ else:
                 for key, val_n in st.session_state["all_params"][config_name][
                     "numerical_params"
                 ].items():
-                    slider_params_save[config_name]["numerical_params"][key] = dict()
+                    slider_params_save[config_name]["numerical_params"][key] = dict(
+                    )
                     for val in val_n:
                         slider_params_save[config_name]["numerical_params"][key][
                             val
@@ -631,17 +611,19 @@ else:
 
 columns = st.columns([25, 75])
 with columns[0]:
-    barfi_schema_name = st.selectbox("Select a saved schema to load:", barfi_schemas())
-    if 'barfi' not in st.session_state['keys']:
-        st.session_state['keys']['barfi'] = True
+    barfi_schema_name = st.selectbox(
+        "Select a saved schema to load:", barfi_schemas())
+    if "barfi" not in st.session_state["keys"]:
+        st.session_state["keys"]["barfi"] = True
     if st.button("Update Nodes", use_container_width=True):
-        st.session_state['keys']['barfi'] = not st.session_state['keys']['barfi']
+        st.session_state["keys"]["barfi"] = not st.session_state["keys"]["barfi"]
 
 with columns[1]:
-    files = st.file_uploader("Add schemas from files", accept_multiple_files=True)
+    files = st.file_uploader("Add schemas from files",
+                             accept_multiple_files=True)
     if len(files) > 0:
         try:
-            with open('schemas.barfi', 'rb') as handle_read:
+            with open("schemas.barfi", "rb") as handle_read:
                 schemas = pickle.load(handle_read)
         except FileNotFoundError:
             print("File not found")
@@ -649,9 +631,9 @@ with columns[1]:
         for file in files:
             new_schemas = pickle.load(file)
             schemas.update(new_schemas)
-        with open('schemas.barfi', 'wb') as handle_write:
-            pickle.dump(schemas, handle_write, protocol=pickle.HIGHEST_PROTOCOL)
-            
+        with open("schemas.barfi", "wb") as handle_write:
+            pickle.dump(schemas, handle_write,
+                        protocol=pickle.HIGHEST_PROTOCOL)
 
 
 # ─────────────────────────────────────
@@ -679,15 +661,19 @@ number_of_blocks = [len(category_blocks[i]) for i in category_blocks.keys()]
 if np.sum(number_of_blocks) == 0:
     st.warning("No blocks found")
 
-key_barfi = None if st.session_state['keys']['barfi'] else f"barfi_state_{st.session_state['keys']['barfi']}"
+key_barfi = (
+    None
+    if st.session_state["keys"]["barfi"]
+    else f"barfi_state_{st.session_state['keys']['barfi']}"
+)
 
 barfi_res = st_barfi(
     category_blocks, compute_engine=True, load_schema=barfi_schema_name, key=key_barfi
 )
-if st.session_state['keys']['barfi'] == False:
-    st.session_state['keys']['barfi'] = True
+if st.session_state["keys"]["barfi"] == False:
+    st.session_state["keys"]["barfi"] = True
     st.rerun()
-    
+
 with st.popover("Results", use_container_width=True):
     if len(barfi_res.keys()) > 0:
         tabs = st.tabs(barfi_res.keys())

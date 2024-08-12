@@ -8,6 +8,7 @@ import os
 import json
 import glob
 from st_pages import show_pages_from_config
+from utils import get_configs
 
 # Configure the Streamlit page
 st.set_page_config(
@@ -31,7 +32,7 @@ with advanced_sidebar:
 
     root_dir_dataframe_hash = main_config.get("root_dir_dataframe_hash")
     root_dir_dataframe_custom = main_config.get("root_dir_dataframe_custom")
-    configs = glob.glob("*.json", root_dir=root_dir_dataframe_custom)
+    configs, modules_names = get_configs(root_dir_dataframe_custom)
 
 # Sidebar for DataFrame selection
 st.sidebar.title("DataFrame Selector")
@@ -66,8 +67,9 @@ else:
 # Sidebar for customizing StreamlitRenderer
 st.sidebar.title("Renderer Customization")
 use_custom_config = st.sidebar.checkbox("Use Custom Config", False)
+config_names = {modules_names[i] + os.path.basename(i).split(".")[0]: i for i in configs}
 custom_config = st.sidebar.selectbox(
-    "Use custom configuration", configs, disabled=not use_custom_config
+    "Use custom configuration", list(config_names.keys()), disabled=not use_custom_config
 )
 # spec_io_mode = st.sidebar.selectbox("Spec IO Mode", options=["rw", "r"], index=0)
 
@@ -75,8 +77,7 @@ custom_config = st.sidebar.selectbox(
 # Function to generate hash from DataFrame
 def generate_hash(data):
     data_string = data.__str__()
-    hasher = hashlib.md5()
-    hasher.update(data_string.encode("utf-8"))  # Encode the string to bytes
+    hasher = hashlib.sha256(data_string.encode("utf-8"))  # Encode the string to bytes
     return hasher.hexdigest()
 
 
@@ -84,10 +85,13 @@ def generate_hash(data):
 def load_or_create_config(data, use_custom_config_):
     if use_custom_config_:
         try:
-            config_dir = root_dir_dataframe_custom
-            config_path = os.path.join(config_dir, f"{custom_config}")
+            config_path = config_names[custom_config]
+            if os.path.exists(config_path):
+                pass
+            else:
+                raise ValueError(f"Could not find configuration file {config_path}")
         except Exception as e:
-            st.sidebar.warning("Could not load configuration, use default")
+            st.sidebar.warning(f"Could not load configuration '{config_path}', use default")
             config_dir = root_dir_dataframe_hash  # Directory to store config files
             os.makedirs(config_dir, exist_ok=True)
             hash_name = generate_hash(data)

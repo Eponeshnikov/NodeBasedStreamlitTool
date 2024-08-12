@@ -1,4 +1,5 @@
-from gen_block import generate_block, function_modificators
+from ..function_modificators import data_combination
+from gen_block import generate_block
 import random
 import time
 import matplotlib.pyplot as plt
@@ -75,7 +76,7 @@ block1 = generate_block(compute_test_func, category_name="Examples", cache=False
 block2 = generate_block(
     compute_func_1,
     options_config_param=options_config1,
-    func_modificator=function_modificators.DataCombinationDecorator,
+    func_modificator=data_combination.DataCombinationDecorator,
     func_modificator_config_params={'data_params': [0,1]},
     func_modificator_params_visible=['return_params'],
     category_name="Examples",

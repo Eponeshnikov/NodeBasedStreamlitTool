@@ -2,7 +2,10 @@ import streamlit as st
 from streamlit_ace import st_ace, THEMES, KEYBINDINGS
 import json
 import glob
+import os
+import hashlib
 from st_pages import show_pages_from_config
+from utils import get_configs
 
 if "storage" not in st.session_state:
     st.session_state["storage"] = dict()
@@ -27,7 +30,10 @@ with advanced_sidebar:
         main_config = json.loads(file_content)
         python_editor_params = main_config.get("python_editor", {})
         root_dir_py_scripts = main_config.get("root_dir_py_scripts", "scripts")
-        scripts = glob.glob("*.py", root_dir=root_dir_py_scripts)
+        scripts, modules_names = get_configs(root_dir_py_scripts, ext='py', between_str=["modules/", "/scripts"])
+        script_names = {modules_names[i] + os.path.basename(i): i for i in scripts}
+        
+        
 
 
 editor, app, storage_tab = st.tabs(["Editor", "App", "Storage :briefcase:"])
@@ -36,12 +42,12 @@ python_editor_params_panel = st.sidebar.expander(
 )
 uploaded_script = st.sidebar.file_uploader("Upload **.py** script", type="py")
 folder_script = st.sidebar.selectbox(
-    "Choose existing **.py** file", scripts, index=scripts.index("empty.py")
+    "Choose existing **.py** file", list(script_names.keys()), index=list(script_names.keys()).index("empty.py")
 )
 if uploaded_script:
     script_in_use = uploaded_script.getvalue().decode("utf-8")
 else:
-    with open(f"{root_dir_py_scripts}{folder_script}", "r", encoding="UTF-8") as f:
+    with open(f"{script_names[folder_script]}", "r", encoding="UTF-8") as f:
         script_in_use = f.read()
 
 with editor:
@@ -81,7 +87,7 @@ with editor:
         readonly=python_editor_params_panel.checkbox(
             "Readonly", value=python_editor_params.get("readonly", False)
         ),
-        key=f"ace-editor-{script_in_use}",
+        key=f"ace-editor-{hashlib.sha256(script_in_use.encode('utf-8'))}",
     )
     st.write("Hit `CTRL+ENTER` to refresh")
     st.write("*Remember to save your code separately!*")
