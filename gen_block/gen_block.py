@@ -30,6 +30,8 @@ def generate_block(
     Additional configuration can be provided through a JSON file named after the compute function or directly via the `options_config_param` parameter.
 
     Parameters:
+    ----------
+    
     - compute_func (Callable): The compute function that the Block will execute. This function's signature is analyzed to configure inputs and outputs.
     - options_config_param (Dict[str, Any], optional): A dictionary containing additional configuration for the Block, such as custom input names, output names, and options. Defaults to None.
     - func_modificator (Callable, optional): A function that can be applied to the compute function to modify its behavior. Defaults to None.
@@ -155,7 +157,7 @@ def generate_block(
                 value="-" * 9 + " Documentation " + "-" * 9,
             )
             block.add_option(name="display_option", type="display", value=docstring)
-            block.add_option(name="display_line_2", type="display", value="-" * 40)
+            block.add_option(name="display_line_2", type="display", value="-" * 38)
 
     # Add options to the Block
     add_options(block, compute_function, options_names)
@@ -173,7 +175,7 @@ def generate_block(
             func_modificator,
             func_modificator_options_names,
         )
-        block.add_option(name="display_line_4", type="display", value="=" * 22)
+        block.add_option(name="display_line_4", type="display", value="=" * 19)
 
     # Define the compute function
     def compute_func_wrapper(self):
