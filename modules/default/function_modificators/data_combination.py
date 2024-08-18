@@ -41,7 +41,7 @@ class DataCombinationDecorator:
             data_params if isinstance(data_params, list) else [data_params]
         )
         self.zip_data = (
-            zip_data if isinstance(zip_data, list) else [zip_data] * len(data_params)
+            zip_data if isinstance(zip_data, list) else [zip_data] * len(self.data_params)
         )
         self.zip_data_params = zip_data_with_params
         self.add_new_params = add_new_params
@@ -51,7 +51,7 @@ class DataCombinationDecorator:
     def __call__(self, func: Callable):
         def wrapper(
             *data_sources: List[Union[Tuple[Dict, np.ndarray], np.ndarray]],
-            list_dict_params: List[Dict] = {},
+            list_dict_params: List[Dict],
         ):
             func_name = self.custom_suffix if self.custom_suffix else func.__name__
             # Ensure data sources contain tuples
