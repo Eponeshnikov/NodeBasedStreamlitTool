@@ -4,20 +4,18 @@ import json
 import glob
 import os
 import hashlib
-from st_pages import show_pages_from_config
 from utils import get_configs
 
 if "storage" not in st.session_state:
     st.session_state["storage"] = dict()
 
-st.set_page_config(
-    page_title="Python Editor",
-    page_icon=":test_tube:",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# st.set_page_config(
+#     page_title="Python Editor",
+#     page_icon=":test_tube:",
+#     layout="wide",
+#     initial_sidebar_state="expanded",
+# )
 
-show_pages_from_config()
 
 advanced_sidebar = st.sidebar.expander("Advanced")
 with advanced_sidebar:

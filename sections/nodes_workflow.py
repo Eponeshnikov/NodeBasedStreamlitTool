@@ -8,7 +8,6 @@ from blocks import blocks
 import inspect
 from typing import Any
 import pickle
-from st_pages import show_pages_from_config
 from utils import format_nanoseconds, get_configs, between
 
 
@@ -41,7 +40,7 @@ def display_value(value: Any) -> None:
     st.write("Type of value:", str(type(value)))
 
 
-def display_block_results(block_result: dict, expanded: bool = False) -> None:
+def display_block_results(block_result: dict) -> None:
     """
     Display the results of a block computation in the Streamlit app.
 
@@ -82,19 +81,19 @@ def display_block_results(block_result: dict, expanded: bool = False) -> None:
         exec_time = format_nanoseconds(exec_time) if exec_time is not None else None
         st.success(f"Successfully computed in {exec_time}")
 
-    with st.expander("**Inputs**", expanded=expanded):
+    with st.popover("**Inputs**", use_container_width=True):
         for input_name, input_data in block_dict["_inputs"].items():
             st.write(f"- {input_name}:")
             display_value(input_data["value"])
             st.divider()
 
-    with st.expander("**Outputs**", expanded=expanded):
+    with st.popover("**Outputs**", use_container_width=True):
         for output_name, output_data in block_dict["_outputs"].items():
             st.write(f"- {output_name}:")
             display_value(output_data["value"])
             st.divider()
 
-    with st.expander("**Options**", expanded=expanded):
+    with st.popover("**Options**", use_container_width=True):
         for option_name, option_data in block_dict["_options"].items():
             if option_name not in ["display_line1", "display_line2"]:
                 st.write(f"- **{option_name}**")
@@ -102,10 +101,10 @@ def display_block_results(block_result: dict, expanded: bool = False) -> None:
                 display_value(option_data["value"])
                 st.divider()
 
-    with st.expander("**State**", expanded=expanded):
+    with st.popover("**State**", use_container_width=True):
         st.write(f"Status: {state_info['status']}")
 
-    with st.expander("**Raw data**"):
+    with st.popover("**Raw data**", use_container_width=True):
         st.json(block_dict)
 
 
@@ -356,14 +355,6 @@ def setup_params() -> dict:
 # ────── Block 3: Page Configuration ─
 # ─────────────────────────────────────
 
-st.set_page_config(
-    page_title="Node-Based Workflow Application",
-    page_icon=":test_tube:",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-show_pages_from_config()
 
 # ─────────────────────────────────────
 # ── Block 4: Advanced Configuration ─
@@ -668,10 +659,9 @@ if st.session_state["keys"]["barfi"] == False:
     st.session_state["keys"]["barfi"] = True
     st.rerun()
 
-with st.popover("Results", use_container_width=True):
+with st.expander("Results"):
     if len(barfi_res.keys()) > 0:
         tabs = st.tabs(barfi_res.keys())
-        expand = st.button("Expand All Results")
         for tab, block in zip(tabs, barfi_res.keys()):
             with tab:
-                display_block_results(barfi_res[block], expand)
+                display_block_results(barfi_res[block])

@@ -7,18 +7,17 @@ import hashlib
 import os
 import json
 import glob
-from st_pages import show_pages_from_config
 from utils import get_configs
 
 # Configure the Streamlit page
-st.set_page_config(
-    page_title="Dataframe Analysis",
-    page_icon=":test_tube:",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# st.set_page_config(
+#     page_title="Dataframe Analysis",
+#     page_icon=":test_tube:",
+#     layout="wide",
+#     initial_sidebar_state="expanded",
+# )
 
-show_pages_from_config()
+
 
 advanced_sidebar = st.sidebar.expander("Advanced")
 with advanced_sidebar:

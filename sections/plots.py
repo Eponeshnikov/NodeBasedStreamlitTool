@@ -7,7 +7,6 @@ import os
 import plotly.tools as tls
 import mpld3
 import streamlit.components.v1 as components
-from st_pages import show_pages_from_config
 
 
 def save_fig(fig, name, category):
@@ -100,14 +99,13 @@ if "display_mode" not in st.session_state:
 if Figure.__name__ not in st.session_state["storage"]:
     st.session_state["storage"][Figure.__name__] = dict()
 
-st.set_page_config(
-    page_title="Plots",
-    page_icon=":test_tube:",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# st.set_page_config(
+#     page_title="Plots",
+#     page_icon=":test_tube:",
+#     layout="wide",
+#     initial_sidebar_state="expanded",
+# )
 
-show_pages_from_config()
 
 # Load plots from a specified folder
 folder_path = st.sidebar.text_input("Enter folder path to load plots")

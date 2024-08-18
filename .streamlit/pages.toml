@@ -1,19 +1,19 @@
 [[pages]]
-path = "nodes_workflow.py"
+path = "sections/nodes_workflow.py"
 name = "Nodes Workflow"
 icon = ":test_tube:"
 
 [[pages]]
-path = "pages/dataframe_analysis.py"
+path = "sections/dataframe_analysis.py"
 name = "Dataframe Analysis"
 icon = ":bar_chart:"
 
 [[pages]]
-path = "pages/plots.py"
+path = "sections/plots.py"
 name = "Plots"
 icon = ":frame_with_picture:"
 
 [[pages]]
-path = "pages/python_editor.py"
+path = "sections/python_editor.py"
 name = "Python Editor"
 icon = ":memo:"
