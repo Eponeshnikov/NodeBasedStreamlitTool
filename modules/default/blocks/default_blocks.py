@@ -2,6 +2,7 @@ from gen_block import generate_block
 import streamlit as st
 import itertools
 import numpy as np
+from typing import Iterable
 
 
 def slider_params(config_str=None, params_str=None):
@@ -42,6 +43,15 @@ def storage(data, id_str, overwrite, unique):
 
 
 def generate_combinations(params):
+    import copy
+    def replace_item(obj, key, replace_value):
+        for k, v in obj.items():
+            if isinstance(v, dict):
+                obj[k] = replace_item(v, key, replace_value)
+        if key in obj:
+            obj[key] = replace_value
+        return obj
+    
     def get_values(param):
         if "from" in param and "to" in param and "step" in param:
             return np.arange(
@@ -63,11 +73,15 @@ def generate_combinations(params):
     }
 
     # Generate the cross product of all section combinations
-    all_combinations = [
-        dict(zip(section_combinations.keys(), p))
+    all_combinations_ = [
+        copy.deepcopy(dict(zip(section_combinations.keys(), p)))
         for p in itertools.product(*section_combinations.values())
     ]
-
+    all_combinations = copy.deepcopy(all_combinations_)
+    if st.session_state['random_seed']:
+        seeds = np.random.randint(2**32 - 2, size=len(all_combinations), dtype=np.int64)
+        for i, comb in enumerate(all_combinations):
+            replace_item(comb, 'seed', seeds[i])
     return all_combinations
 
 
