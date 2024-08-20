@@ -239,7 +239,7 @@ def generate_block(
             )
         else:
             compute_function = compute_func
-
+        input_values.update(option_values)
         memory = Memory(".cache", verbose=0)
         with st.spinner(f"Running {block_name}"):
             start_time = time.time_ns()
@@ -248,7 +248,7 @@ def generate_block(
                 memory.cache(compute_function) if cache_ else compute_function
             )
             outputs = compute_func_wrapper_(
-                *input_valuse_var_arg, **input_values, **option_values
+                *input_valuse_var_arg, **input_values
             )
             exec_time = time.time_ns() - start_time
         self.set_state("exec_time", exec_time)
