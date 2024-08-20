@@ -44,6 +44,7 @@ def storage(data, id_str, overwrite, unique):
 
 def generate_combinations(params):
     import copy
+
     def replace_item(obj, key, replace_value):
         for k, v in obj.items():
             if isinstance(v, dict):
@@ -51,7 +52,7 @@ def generate_combinations(params):
         if key in obj:
             obj[key] = replace_value
         return obj
-    
+
     def get_values(param):
         if "from" in param and "to" in param and "step" in param:
             return np.arange(
@@ -66,10 +67,19 @@ def generate_combinations(params):
         keys, values = zip(*[(k, get_values(v)) for k, v in d.items()])
         return [dict(zip(keys, combo)) for combo in itertools.product(*values)]
 
+    def depth(x):
+        if type(x) is dict and x:
+            return 1 + max(depth(x[a]) for a in x)
+        if type(x) is list and x:
+            return 1 + max(depth(a) for a in x)
+        return 0
+
+    # print('Depth', depth(params), params)
+    params_ = params if depth(params) == 3 else {"tmp": params}
     # Generate combinations for each section
     section_combinations = {
         category: extract_param_combinations(category_params)
-        for category, category_params in params.items()
+        for category, category_params in params_.items()
     }
 
     # Generate the cross product of all section combinations
@@ -78,10 +88,15 @@ def generate_combinations(params):
         for p in itertools.product(*section_combinations.values())
     ]
     all_combinations = copy.deepcopy(all_combinations_)
-    if st.session_state['random_seed']:
+    if st.session_state["random_seed"]:
         seeds = np.random.randint(2**32 - 2, size=len(all_combinations), dtype=np.int64)
         for i, comb in enumerate(all_combinations):
-            replace_item(comb, 'seed', seeds[i])
+            replace_item(comb, "seed", seeds[i])
+    all_combinations = (
+        all_combinations
+        if depth(params) == 3
+        else [all_combination["tmp"] for all_combination in all_combinations]
+    )
     return all_combinations
 
 
@@ -119,7 +134,7 @@ option_config_generate_combinations = {
     "docstring": "This block generates combinations of input parameters for further analysis or processing.",
     "output_names": ["Combinations list of dicts"],
     "input_names": {
-      "params": "Input Dictionary",
+        "params": "Input Dictionary",
     },
 }
 
