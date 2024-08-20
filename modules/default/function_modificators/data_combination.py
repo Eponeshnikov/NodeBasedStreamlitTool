@@ -51,7 +51,7 @@ class DataCombinationDecorator:
     def __call__(self, func: Callable):
         def wrapper(
             *data_sources: List[Union[Tuple[Dict, np.ndarray], np.ndarray]],
-            list_dict_params: List[Dict],
+            list_dict_params: List[Dict] = [dict()],
         ):
             func_name = self.custom_suffix if self.custom_suffix else func.__name__
             # Ensure data sources contain tuples
