@@ -73,7 +73,7 @@ def display_block_results(block_result: dict) -> None:
 
     state_info = block_dict["_state"]["info"]
     if state_info["status"] == "Errored":
-        st.error(f"Error: {state_info['exception'][0]}")
+        st.error(f"Error: {state_info.get('exception', ['Unknown error'])[0]}")
         if "traceback" in state_info:
             st.code(state_info["traceback"])
     elif state_info["status"] == "Computed":
@@ -349,11 +349,6 @@ def setup_params() -> dict:
 
     # Return the dictionary containing all the widgets
     return widgets
-
-
-# ─────────────────────────────────────
-# ────── Block 3: Page Configuration ─
-# ─────────────────────────────────────
 
 
 # ─────────────────────────────────────
