@@ -16,6 +16,7 @@ from utils import format_nanoseconds, get_configs, between
 # ─────────────────────────────────────
 
 
+@st.fragment
 def display_value(value: Any) -> None:
     """
     Display the value and its type using Streamlit's write method.
@@ -40,6 +41,7 @@ def display_value(value: Any) -> None:
     st.write("Type of value:", str(type(value)))
 
 
+@st.fragment
 def display_block_results(block_result: dict) -> None:
     """
     Display the results of a block computation in the Streamlit app.
@@ -113,7 +115,39 @@ def display_block_results(block_result: dict) -> None:
 # ─────────────────────────────────────
 
 
-def setup_params() -> dict:
+def get_text_sidepanel(config):
+    default_text = {
+        k: ChainMap(
+            {v: v for v in config["numerical_params"][k]},
+            {"title": k},
+        )
+        for k in config["numerical_params"]
+    }
+    # Get the "pretty" text (user-friendly labels) for the numerical parameters
+    pretty_text = config.get(  # Access the all_params dictionary for the current config
+        "text_params", {}
+    ).get(  # Get the "text_params" dictionary, or an empty dict if it doesn't exist
+        "pretty_text",  # Get the "pretty_text" dictionary, or construct it from the numerical_params if it doesn't exist
+        default_text,
+    )
+
+    # Get the help text for the numerical parameters
+    help_text = config.get(  # Access the all_params dictionary for the current config
+        "text_params", {}
+    ).get(  # Get the "text_params" dictionary, or an empty dict if it doesn't exist
+        "help_text", pretty_text
+    )  # Get the "help_text" dictionary, or use pretty_text if it doesn't exist
+
+    return default_text, pretty_text, help_text
+
+
+@st.fragment
+def exec_widget_func(w_func, w_pretty_text, w_key, w_help_text, w_default_params):
+    result = w_func(w_pretty_text, key=w_key, help=w_help_text, **w_default_params)
+    return result
+
+
+def setup_params(config_name) -> dict:
     """
     Set up and display Streamlit widgets for parameter input based on the current configuration.
 
@@ -137,27 +171,7 @@ def setup_params() -> dict:
 
     # Get the current configuration from the session state
     config = st.session_state["all_params"][config_name]
-    default_text = {
-        k: ChainMap(
-            {v: v for v in config["numerical_params"][k]},
-            {"title": k},
-        )
-        for k in config["numerical_params"]
-    }
-    # Get the "pretty" text (user-friendly labels) for the numerical parameters
-    pretty_text = config.get(  # Access the all_params dictionary for the current config
-        "text_params", {}
-    ).get(  # Get the "text_params" dictionary, or an empty dict if it doesn't exist
-        "pretty_text",  # Get the "pretty_text" dictionary, or construct it from the numerical_params if it doesn't exist
-        default_text,
-    )
-
-    # Get the help text for the numerical parameters
-    help_text = config.get(  # Access the all_params dictionary for the current config
-        "text_params", {}
-    ).get(  # Get the "text_params" dictionary, or an empty dict if it doesn't exist
-        "help_text", pretty_text
-    )  # Get the "help_text" dictionary, or use pretty_text if it doesn't exist
+    default_text, pretty_text, help_text = get_text_sidepanel(config)
     with tab:
         # Iterate over the numerical parameters
         for name, values in config["numerical_params"].items():
@@ -255,16 +269,25 @@ def setup_params() -> dict:
                             ),
                         )
                     with multi_columms[0]:
-                        from_w = widget_func(
-                            f"From:",
-                            key=from_key,
-                            **widget_params_from,
+                        from_w = exec_widget_func(
+                            widget_func, f"From:", from_key, None, widget_params_from
                         )
+                        # from_w = widget_func(
+                        #     f"From:",
+                        #     key=from_key,
+                        #     **widget_params_from,
+                        # )
                     with multi_columms[1]:
-                        to_w = widget_func(f"To:", key=to_key, **widget_params_to)
+                        # to_w = widget_func(f"To:", key=to_key, **widget_params_to)
+                        to_w = exec_widget_func(
+                            widget_func, f"To:", to_key, None, widget_params_to
+                        )
                     with multi_columms[2]:
-                        step_w = widget_func(
-                            f"Step:", key=step_key, **widget_params_step
+                        # step_w = widget_func(
+                        #     f"Step:", key=step_key, **widget_params_step
+                        # )
+                        step_w = exec_widget_func(
+                            widget_func, f"Step:", step_key, None, widget_params_step
                         )
 
                     params_widgets[key] = {"from": from_w, "to": to_w, "step": step_w}
@@ -291,10 +314,24 @@ def setup_params() -> dict:
                     checkbox_columms = st.columns(2)
                     with checkbox_columms[0]:
                         st.markdown("Config 1:")
-                        config1 = widget_func(
+                        # config1 = widget_func(
+                        #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
+                        #     key=config1_key,
+                        #     help=help_text.get(
+                        #         name, pretty_text.get(name, default_text[name])
+                        #     ).get(
+                        #         key,
+                        #         pretty_text.get(name, default_text[name]).get(
+                        #             key, default_text[name][key]
+                        #         ),
+                        #     ),
+                        #     **widget_params_config1,
+                        # )
+                        config1 = exec_widget_func(
+                            widget_func,
                             f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                            key=config1_key,
-                            help=help_text.get(
+                            config1_key,
+                            help_text.get(
                                 name, pretty_text.get(name, default_text[name])
                             ).get(
                                 key,
@@ -302,14 +339,28 @@ def setup_params() -> dict:
                                     key, default_text[name][key]
                                 ),
                             ),
-                            **widget_params_config1,
+                            widget_params_config1,
                         )
                     with checkbox_columms[1]:
                         st.markdown("Config 2:")
-                        config2 = widget_func(
+                        # config2 = widget_func(
+                        #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
+                        #     key=config2_key,
+                        #     help=help_text.get(
+                        #         name, pretty_text.get(name, default_text[name])
+                        #     ).get(
+                        #         key,
+                        #         pretty_text.get(name, default_text[name]).get(
+                        #             key, default_text[name][key]
+                        #         ),
+                        #     ),
+                        #     **widget_params_config2,
+                        # )
+                        config2 = exec_widget_func(
+                            widget_func,
                             f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                            key=config2_key,
-                            help=help_text.get(
+                            config2_key,
+                            help_text.get(
                                 name, pretty_text.get(name, default_text[name])
                             ).get(
                                 key,
@@ -317,7 +368,7 @@ def setup_params() -> dict:
                                     key, default_text[name][key]
                                 ),
                             ),
-                            **widget_params_config2,
+                            widget_params_config2,
                         )
                     params_widgets[key] = {
                         "config1": config1,
@@ -330,10 +381,24 @@ def setup_params() -> dict:
                         widget_value = widget_value.get("from", "min")
                     widget_params_default = dict(widget_params)
                     widget_params_default.update({"value": widget_value})
-                    params_widgets[key] = widget_func(
+                    # params_widgets[key] = widget_func(
+                    #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
+                    #     key=f"{config_name}.{name}.{key}",
+                    #     help=help_text.get(
+                    #         name, pretty_text.get(name, default_text[name])
+                    #     ).get(
+                    #         key,
+                    #         pretty_text.get(name, default_text[name]).get(
+                    #             key, default_text[name][key]
+                    #         ),
+                    #     ),
+                    #     **widget_params_default,
+                    # )
+                    params_widgets[key] = exec_widget_func(
+                        widget_func,
                         f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                        key=f"{config_name}.{name}.{key}",
-                        help=help_text.get(
+                        f"{config_name}.{name}.{key}",
+                        help_text.get(
                             name, pretty_text.get(name, default_text[name])
                         ).get(
                             key,
@@ -341,7 +406,7 @@ def setup_params() -> dict:
                                 key, default_text[name][key]
                             ),
                         ),
-                        **widget_params_default,
+                        widget_params_default,
                     )
 
             # Store the widgets for the current parameter group in the main widgets dictionary
@@ -511,7 +576,7 @@ else:
             # Setup parameters based on user inputs.
 
             # Call the setup_params function with st.session_state["all_params"] and update the "numerical_params"
-            widgets_vals = setup_params()
+            widgets_vals = setup_params(config_name)
             for key, val_n in widgets_vals.items():
                 for val in val_n:
                     st.session_state["all_params"][config_name]["numerical_params"][
@@ -592,13 +657,21 @@ else:
     else:
         st.sidebar.warning("No configurations chosen")
 
-columns = st.columns([25, 75])
+columns = st.columns([30, 70], vertical_alignment="top")
 with columns[0]:
     barfi_schema_name = st.selectbox("Select a saved schema to load:", barfi_schemas())
     if "barfi" not in st.session_state["keys"]:
         st.session_state["keys"]["barfi"] = True
-    if st.button("Update Nodes", use_container_width=True):
-        st.session_state["keys"]["barfi"] = not st.session_state["keys"]["barfi"]
+    sub_columns = st.columns(2)
+    with sub_columns[0]:
+        if st.button("Update Nodes", use_container_width=True):
+            st.session_state["keys"]["barfi"] = not st.session_state["keys"]["barfi"]
+    with sub_columns[1]:
+        compute_engine = st.toggle(
+            "Enable computation",
+            value=True,
+            help="Disables computation of nodes, might be usefull if change sidepanel's parameters",
+        )
 
 with columns[1]:
     files = st.file_uploader("Add schemas from files", accept_multiple_files=True)
@@ -614,7 +687,6 @@ with columns[1]:
             schemas.update(new_schemas)
         with open("schemas.barfi", "wb") as handle_write:
             pickle.dump(schemas, handle_write, protocol=pickle.HIGHEST_PROTOCOL)
-
 
 # ─────────────────────────────────────
 # ───── Block 7: Categorize Blocks ────
@@ -648,7 +720,10 @@ key_barfi = (
 )
 
 barfi_res = st_barfi(
-    category_blocks, compute_engine=True, load_schema=barfi_schema_name, key=key_barfi
+    category_blocks,
+    compute_engine=compute_engine,
+    load_schema=barfi_schema_name,
+    key=key_barfi,
 )
 if st.session_state["keys"]["barfi"] == False:
     st.session_state["keys"]["barfi"] = True
@@ -659,4 +734,7 @@ with st.expander("Results"):
         tabs = st.tabs(barfi_res.keys())
         for tab, block in zip(tabs, barfi_res.keys()):
             with tab:
-                display_block_results(barfi_res[block])
+                if "block" in barfi_res[block]:
+                    display_block_results(barfi_res[block])
+                else:
+                    st.write(barfi_res[block])
