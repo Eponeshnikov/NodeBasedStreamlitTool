@@ -16,7 +16,6 @@ from utils import format_nanoseconds, get_configs, between
 # ─────────────────────────────────────
 
 
-@st.fragment
 def display_value(value: Any) -> None:
     """
     Display the value and its type using Streamlit's write method.
@@ -41,7 +40,6 @@ def display_value(value: Any) -> None:
     st.write("Type of value:", str(type(value)))
 
 
-@st.fragment
 def display_block_results(block_result: dict) -> None:
     """
     Display the results of a block computation in the Streamlit app.
@@ -116,6 +114,20 @@ def display_block_results(block_result: dict) -> None:
 
 
 def get_text_sidepanel(config):
+    """
+    This function retrieves and processes text parameters for a given configuration.
+
+    Parameters:
+        config (dict): A dictionary representing the configuration. It should contain the following keys:
+            - "numerical_params" (dict): A dictionary containing numerical parameters.
+            - "text_params" (dict): A dictionary containing text parameters.
+
+    Returns:
+    tuple: A tuple containing three dictionaries:
+        - default_text (dict): A dictionary containing default text for numerical parameters.
+        - pretty_text (dict): A dictionary containing user-friendly labels for numerical parameters.
+        - help_text (dict): A dictionary containing help text for numerical parameters.
+    """
     default_text = {
         k: ChainMap(
             {v: v for v in config["numerical_params"][k]},
@@ -123,6 +135,7 @@ def get_text_sidepanel(config):
         )
         for k in config["numerical_params"]
     }
+
     # Get the "pretty" text (user-friendly labels) for the numerical parameters
     pretty_text = config.get(  # Access the all_params dictionary for the current config
         "text_params", {}
@@ -143,6 +156,19 @@ def get_text_sidepanel(config):
 
 @st.fragment
 def exec_widget_func(w_func, w_pretty_text, w_key, w_help_text, w_default_params):
+    """
+    Executes a Streamlit widget function with the given parameters.
+
+    Parameters:
+        w_func (function): The Streamlit widget function to be executed.
+        w_pretty_text (str): The label or text to be displayed for the widget.
+        w_key (str): The unique key for the widget.
+        w_help_text (str): The help text or tooltip for the widget.
+        w_default_params (dict): The default parameters for the widget function.
+
+    Returns:
+    result (object): The result of executing the Streamlit widget function.
+    """
     result = w_func(w_pretty_text, key=w_key, help=w_help_text, **w_default_params)
     return result
 
@@ -159,6 +185,9 @@ def setup_params(config_name) -> dict:
     The widgets are organized by parameter groups, with each group's widgets stored in a dictionary.
     The function returns a dictionary containing these groups, allowing for further manipulation or
     access to the widget values elsewhere in the application.
+
+    Parameters:
+        config_name (str): The name of the configuration for which the widgets should be set up.
 
     Returns:
         dict: A dictionary where keys are parameter group names and values are dictionaries of
@@ -272,20 +301,11 @@ def setup_params(config_name) -> dict:
                         from_w = exec_widget_func(
                             widget_func, f"From:", from_key, None, widget_params_from
                         )
-                        # from_w = widget_func(
-                        #     f"From:",
-                        #     key=from_key,
-                        #     **widget_params_from,
-                        # )
                     with multi_columms[1]:
-                        # to_w = widget_func(f"To:", key=to_key, **widget_params_to)
                         to_w = exec_widget_func(
                             widget_func, f"To:", to_key, None, widget_params_to
                         )
                     with multi_columms[2]:
-                        # step_w = widget_func(
-                        #     f"Step:", key=step_key, **widget_params_step
-                        # )
                         step_w = exec_widget_func(
                             widget_func, f"Step:", step_key, None, widget_params_step
                         )
@@ -314,19 +334,6 @@ def setup_params(config_name) -> dict:
                     checkbox_columms = st.columns(2)
                     with checkbox_columms[0]:
                         st.markdown("Config 1:")
-                        # config1 = widget_func(
-                        #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                        #     key=config1_key,
-                        #     help=help_text.get(
-                        #         name, pretty_text.get(name, default_text[name])
-                        #     ).get(
-                        #         key,
-                        #         pretty_text.get(name, default_text[name]).get(
-                        #             key, default_text[name][key]
-                        #         ),
-                        #     ),
-                        #     **widget_params_config1,
-                        # )
                         config1 = exec_widget_func(
                             widget_func,
                             f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
@@ -343,19 +350,6 @@ def setup_params(config_name) -> dict:
                         )
                     with checkbox_columms[1]:
                         st.markdown("Config 2:")
-                        # config2 = widget_func(
-                        #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                        #     key=config2_key,
-                        #     help=help_text.get(
-                        #         name, pretty_text.get(name, default_text[name])
-                        #     ).get(
-                        #         key,
-                        #         pretty_text.get(name, default_text[name]).get(
-                        #             key, default_text[name][key]
-                        #         ),
-                        #     ),
-                        #     **widget_params_config2,
-                        # )
                         config2 = exec_widget_func(
                             widget_func,
                             f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
@@ -381,19 +375,6 @@ def setup_params(config_name) -> dict:
                         widget_value = widget_value.get("from", "min")
                     widget_params_default = dict(widget_params)
                     widget_params_default.update({"value": widget_value})
-                    # params_widgets[key] = widget_func(
-                    #     f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
-                    #     key=f"{config_name}.{name}.{key}",
-                    #     help=help_text.get(
-                    #         name, pretty_text.get(name, default_text[name])
-                    #     ).get(
-                    #         key,
-                    #         pretty_text.get(name, default_text[name]).get(
-                    #             key, default_text[name][key]
-                    #         ),
-                    #     ),
-                    #     **widget_params_default,
-                    # )
                     params_widgets[key] = exec_widget_func(
                         widget_func,
                         f"{pretty_text.get(name, default_text[name]).get(key, default_text[name][key])}:",
@@ -729,12 +710,18 @@ if st.session_state["keys"]["barfi"] == False:
     st.session_state["keys"]["barfi"] = True
     st.rerun()
 
-with st.expander("Results"):
-    if len(barfi_res.keys()) > 0:
-        tabs = st.tabs(barfi_res.keys())
-        for tab, block in zip(tabs, barfi_res.keys()):
-            with tab:
-                if "block" in barfi_res[block]:
-                    display_block_results(barfi_res[block])
-                else:
-                    st.write(barfi_res[block])
+@st.fragment
+def show_results(barfi_results):
+    show_results = st.multiselect("Choose results to display", list(barfi_results.keys()))
+
+    with st.expander("Results"):
+        if len(show_results) > 0:
+            tabs = st.tabs(show_results)
+            for tab, block in zip(tabs, show_results):
+                with tab:
+                    if "block" in barfi_results[block]:
+                        display_block_results(barfi_results[block])
+                    else:
+                        st.write(barfi_results[block])
+
+show_results(barfi_res)

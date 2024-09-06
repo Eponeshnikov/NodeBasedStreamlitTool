@@ -36,6 +36,7 @@ class DataCombinationDecorator:
         add_new_params: bool = True,
         return_params: bool = True,
         custom_suffix: str = None,
+        result_as_params: bool = False
     ):
         self.data_params = (
             data_params if isinstance(data_params, list) else [data_params]
@@ -47,6 +48,7 @@ class DataCombinationDecorator:
         self.add_new_params = add_new_params
         self.return_params = return_params
         self.custom_suffix = custom_suffix
+        self.result_as_params = result_as_params
 
     def __call__(self, func: Callable):
         def wrapper(
@@ -66,7 +68,9 @@ class DataCombinationDecorator:
             )
 
             # Construct the final result
-            final_result = result if self.return_params else [res[1] for res in result]
+            if self.result_as_params:
+                result = [(res[0].update({func_name: res[1]}), res[1]) for res in result]
+            final_result = result if self.return_params else [res[1] for res in final_result]
             return final_result
 
         return wrapper
