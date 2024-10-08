@@ -9,6 +9,7 @@ import numpy as np
 import streamlit as st
 from joblib import Memory
 import itertools
+from utils import cache_result
 
 
 def generate_block(
@@ -108,6 +109,8 @@ def generate_block(
     op_conf_in_n = options_config.get("input_names", {})
     for param_name, param in signature.parameters.items():
         if param.kind == param.VAR_POSITIONAL:
+            if func_modificator_config_params.get('disable_data_source', False):
+                continue
             var_pos_params = [k for k, v in op_conf_in_n.items() if param_name in k]
             if len(var_pos_params) > 0:
                 input_names_all[param_name] = []
@@ -240,12 +243,12 @@ def generate_block(
         else:
             compute_function = compute_func
         input_values.update(option_values)
-        memory = Memory(".cache", verbose=0)
+        # memory = Memory(".cache", verbose=0)
         with st.spinner(f"Running {block_name}"):
             start_time = time.time_ns()
             # Call the provided compute function with input values
             compute_func_wrapper_ = (
-                memory.cache(compute_function) if cache_ else compute_function
+                cache_result()(compute_function) if cache_ else compute_function
             )
             outputs = compute_func_wrapper_(
                 *input_valuse_var_arg, **input_values
