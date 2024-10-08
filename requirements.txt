@@ -63,7 +63,6 @@ matplotlib==3.9.2
 matplotlib-inline==0.1.7
 mdurl==0.1.2
 mitsuba==3.5.2
-ml-dtypes==0.2.0
 monotonic==1.6
 mpld3==0.5.10
 multimethod==1.12
@@ -128,7 +127,7 @@ scikit-learn==1.5.1
 scipy==1.13.1
 seaborn==0.13.2
 segment-analytics-python==2.2.3
-sionna==0.18.0
+sionna==0.19.0
 six==1.16.0
 smmap==5.0.1
 SQLAlchemy==2.0.32
@@ -165,3 +164,4 @@ widgetsnbextension==4.0.11
 wordcloud==1.9.3
 wrapt==1.14.1
 ydata-profiling==4.9.0
+flatten_json
