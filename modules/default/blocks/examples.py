@@ -54,6 +54,14 @@ def cache_func():
     time.sleep(2)  # Simulate a time-consuming operation
     return 10
 
+def multi_no_data(sigma):
+    return sigma**2
+
+options_config0 = {
+    "block_name": "Multi",
+    "input_names": {"list_dict_params": "x"},
+    "output_names": ["Sum"],
+}
 
 options_config1 = {
     "block_name": "Compute Sum (config 1)",
@@ -72,12 +80,22 @@ options_config2 = {
 
 options_config3 = {"block_name": "Cache Example"}
 
+block0 = generate_block(
+    multi_no_data,
+    options_config_param=options_config0,
+    func_modificator=data_combination.DataCombinationDecorator,
+    func_modificator_config_params={'data_params': [], 'disable_data_source': True},
+    # func_modificator_params_visible=['return_params'],
+    category_name="Examples",
+    cache=False,
+)
+
 block1 = generate_block(compute_test_func, category_name="Examples", cache=False)
 block2 = generate_block(
     compute_func_1,
     options_config_param=options_config1,
     func_modificator=data_combination.DataCombinationDecorator,
-    func_modificator_config_params={'data_params': [0,1]},
+    func_modificator_config_params={'data_params': [0,1], 'disable_data_source': False},
     func_modificator_params_visible=['return_params'],
     category_name="Examples",
     cache=False,

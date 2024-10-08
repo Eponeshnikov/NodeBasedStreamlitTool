@@ -3,7 +3,7 @@ import streamlit as st
 import itertools
 import numpy as np
 import copy
-from typing import Iterable, Any, List, Dict
+from typing import Iterable, Any, List, Dict, Union
 from flatten_json import flatten
 
 ##############################
@@ -11,17 +11,20 @@ from flatten_json import flatten
 ##############################
 
 
-def slider_params(config_str=None, params_str=None):
+def slider_params(config_str=None, params_str=None, param=None, expand_dim=False):
     """
     This function retrieves slider parameters from the session state based on the provided configuration and parameter strings.
 
     Parameters
     ----------
-
     config_str (str, optional) :
         The name of the configuration for which to retrieve parameters. If not provided or empty, the function returns all slider parameters.
     params_str (str, optional) :
         The name of the specific parameter within the configuration to retrieve. If not provided or empty, the function returns all parameters for the specified configuration.
+    param (str, optional) :
+        The name of the specific parameter within the configuration to retrieve. If not provided or empty, the function returns all parameters for the specified configuration.
+    expand_dim (bool, optional) :
+        If True, the function returns the output as a list containing the original output. If False (or not provided), the function returns the output as is.
 
     Returns
     ----------
@@ -34,7 +37,14 @@ def slider_params(config_str=None, params_str=None):
         if params_str is None or len(params_str) == 0:
             output = st.session_state["slider_params"][config_str]
         else:
-            output = st.session_state["slider_params"][config_str][params_str]
+            if param is None or len(param) == 0:
+                output = st.session_state["slider_params"][config_str][params_str]
+            else:
+                output = st.session_state["slider_params"][config_str][params_str][
+                    param
+                ]
+    if expand_dim:
+        output = [output]
     return output
 
 
@@ -154,6 +164,7 @@ def generate_combinations(params):
     )
     return all_combinations
 
+
 def flatten_params_multi(data: List[tuple[Dict, Any]]) -> List[tuple[Dict, Any]]:
     """
     This function takes a list of tuples, where each tuple contains a dictionary and an additional value.
@@ -161,24 +172,138 @@ def flatten_params_multi(data: List[tuple[Dict, Any]]) -> List[tuple[Dict, Any]]
 
     Parameters
     ----------
-    
     - data (List[tuple[Dict, Any]]): A list of tuples. Each tuple contains a dictionary (first element) and an additional value (second element).
 
     Returns
     ----------
-    
     - List[tuple[Dict, Any]]: A list of tuples. Each tuple contains a flattened dictionary (first element) and the corresponding additional value (second element).
     """
+
     def flat_dict_in_tuple(t):
         return (flatten(t[0]), t[1])
 
     result = [flat_dict_in_tuple(i) for i in data]
     return result
-        
+
+
+def filter_dict(
+    data: Union[Dict, Any],
+    value: Any,
+    filter_type: str = "contains",
+    where: str = "key",
+) -> Union[Dict, Any]:
+    """
+    This function filters dictionaries based on a specified value and filter type.
+
+    Parameters
+    ----------
+    - data (Union[Dict, Any]): The input data, which can be a dictionary or a list of dictionaries.
+    - value (Any): The value to filter by.
+    - filter_type (str): The type of filter to apply. It can be one of the following:
+        - "contains": Filters dictionaries where the value contains the specified value.
+        - "not_contains": Filters dictionaries where the value does not contain the specified value.
+        - "exact": Filters dictionaries where the value is exactly the specified value.
+    - where (str): The location to filter. It can be one of the following:
+        - "key": Filters dictionaries based on the keys.
+        - "value": Filters dictionaries based on the values.
+        - "both": Filters dictionaries based on both keys and values.
+
+    Returns:
+    - Union[Dict, Any]: The filtered data. If the original data was a dictionary, the function returns a dictionary.
+        If the original data was a list, the function returns a list of dictionaries.
+    """
+    
+    def filter_value(item: str) -> bool:
+        item_str = str(item).lower()
+        value_str = str(value).lower()
+        if filter_type == "contains":
+            return value_str in item_str
+        elif filter_type == "not_contains":
+            return value_str not in item_str
+        elif filter_type == "exact":
+            return value_str == item_str
+        return False
+
+    def reconstruct(flat_dict: Dict[str, Any]) -> Any:
+        result: Dict[str, Any] = {}
+        for key, value in flat_dict.items():
+            parts = key.split("___")
+            d = result
+            for part in parts[:-1]:
+                if part.isdigit() and isinstance(d, list):
+                    idx = int(part)
+                    while len(d) <= idx:
+                        d.append({})
+                    d = d[idx]
+                elif isinstance(d, dict):
+                    if part not in d:
+                        d[part] = {}
+                    d = d[part]
+                else:
+                    # If we encounter an unexpected structure, we create a new dict
+                    new_d = {}
+                    d.append(new_d)
+                    d = new_d
+            if parts[-1].isdigit() and isinstance(d, list):
+                idx = int(parts[-1])
+                while len(d) <= idx:
+                    d.append(None)
+                d[idx] = value
+            else:
+                d[parts[-1]] = value
+        return result
+
+    if isinstance(data, dict):
+        data_ = [data]
+    elif isinstance(data, list):
+        data_ = data
+    else:
+        raise ValueError("Input data must be a dictionary or a list")
+    return_value = []
+    filter_func = all if filter_type == 'not_contains' else any
+    for _data_ in data_:
+        flattened = flatten(_data_, separator="___")
+        filtered = {}
+        for k, v in flattened.items():
+            key_parts = k.split("___")
+            if (
+                where in ["key", "both"]
+                and filter_func(list(filter_value(part) for part in key_parts))
+            ) or (where in ["value", "both"] and filter_value(v)):
+                filtered[k] = v
+        reconstructed = reconstruct(filtered)
+        return_value.append(reconstructed)
+
+    # If the original data was not a dict, we return the first (and only) value
+    return_value = return_value[0] if isinstance(data, dict) else return_value
+    return return_value
+
 
 ##########################
 ########Configs###########
 ##########################
+
+option_config_filter_list_dict = {
+    "block_name": "Filter (List of) Dictionaries",
+    "docstring": "Filter Dictionaries by value",
+    "output_names": ["Filtered"],
+    "input_names": {
+        "data": "Data",
+    },
+    "options": {
+        "value": {"type": "input", "name": "Value of filter"},
+        "filter_type": {
+            "type": "select",
+            "name": "Filter Type",
+            "items": ["contains", "not_contains", "exact"],
+        },
+        "where": {
+            "type": "select",
+            "name": "Where filter",
+            "items": ["key", "value", "both"],
+        },
+    },
+}
 
 option_config_slider_params = {
     "block_name": "Slider Panel Parameters",
@@ -190,6 +315,8 @@ option_config_slider_params = {
             "name": "Config (Tab)",
         },
         "params_str": {"type": "input", "name": "Section of Tab"},
+        "param": {"type": "input", "name": "Parameter"},
+        "expand_dim": {"type": "checkbox", "name": "Wrap output to list"},
     },
 }
 
@@ -204,19 +331,19 @@ option_config_stored_params = {
         "id_str": {
             "type": "input",
             "name": "Identifier",
-            "default": ""  # Optional input, default value is an empty string
+            "default": "",  # Optional input, default value is an empty string
         },
         "overwrite": {
             "type": "checkbox",
             "name": "Overwrite existing data",
-            "default": False  # Optional checkbox, default value is False
+            "default": False,  # Optional checkbox, default value is False
         },
         "unique": {
             "type": "checkbox",
             "name": "Generate unique identifier",
-            "default": False  # Optional checkbox, default value is False
-        }
-    }
+            "default": False,  # Optional checkbox, default value is False
+        },
+    },
 }
 
 option_config_generate_combinations = {
@@ -240,21 +367,28 @@ option_config_flatten_params_multi = {
 #########################
 ########Blocks###########
 #########################
+filter_dict_block = generate_block(
+    filter_dict,
+    option_config_filter_list_dict,
+    add_display_option=True,
+    cache=False,
+    category_name="Utility",
+)
 
 slider_block = generate_block(
     slider_params,
     option_config_slider_params,
     category_name="Input",
     cache=False,
-    cache_visible=False
+    cache_visible=False,
 )
 
 storage_block = generate_block(
-    storage, 
-    option_config_stored_params, 
-    category_name="Output", 
+    storage,
+    option_config_stored_params,
+    category_name="Output",
     cache=False,
-    cache_visible=False
+    cache_visible=False,
 )
 
 generate_combinations_block = generate_block(
@@ -262,7 +396,7 @@ generate_combinations_block = generate_block(
     option_config_generate_combinations,
     add_display_option=True,
     cache=False,
-    category_name="Utility"
+    category_name="Utility",
 )
 
 flatten_params_multi_block = generate_block(
@@ -270,5 +404,5 @@ flatten_params_multi_block = generate_block(
     option_config_flatten_params_multi,
     add_display_option=True,
     cache=False,
-    category_name="Utility"
+    category_name="Utility",
 )
